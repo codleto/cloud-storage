@@ -3,15 +3,18 @@ package org.codleto.cloudstorage.service;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.codleto.cloudstorage.dto.AuthRequest;
 import org.codleto.cloudstorage.dto.AuthResponse;
 import org.codleto.cloudstorage.entity.UserEntity;
+import org.codleto.cloudstorage.exception.InvalidCredentialsException;
 import org.codleto.cloudstorage.exception.UsernameAlreadyTakenException;
 import org.codleto.cloudstorage.repository.UserRepository;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -53,7 +56,45 @@ public class AuthService {
         return new AuthResponse(user.getUsername());
     }
 
-    private void authenticateAndSaveContext(
+    public AuthResponse signIn(
+            AuthRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse
+    ) {
+        try {
+            Authentication authentication = authenticateAndSaveContext(
+                    request.username(),
+                    request.password(),
+                    httpRequest,
+                    httpResponse
+            );
+
+            return new AuthResponse(authentication.getName());
+
+        } catch (AuthenticationException exception) {
+            throw new InvalidCredentialsException();
+        }
+
+    }
+
+    public void signOut(HttpServletRequest request, HttpServletResponse response) {
+
+        SecurityContextHolder.clearContext();
+
+        securityContextRepository.saveContext(
+                SecurityContextHolder.createEmptyContext(),
+                request,
+                response
+        );
+
+        HttpSession session = request.getSession(false);
+
+        if (session != null) {
+            session.invalidate();
+        }
+    }
+
+    private Authentication authenticateAndSaveContext(
             String username,
             String rawPassword,
             HttpServletRequest request,
@@ -68,5 +109,7 @@ public class AuthService {
 
         SecurityContextHolder.setContext(context);
         securityContextRepository.saveContext(context, request, response);
+
+        return authentication;
     }
 }

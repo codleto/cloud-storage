@@ -22,7 +22,7 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/sign-up")
-    public ResponseEntity<AuthResponse>signUp(
+    public ResponseEntity<AuthResponse> signUp(
             @Valid @RequestBody AuthRequest request,
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse
@@ -31,4 +31,29 @@ public class AuthController {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
+    @PostMapping("/sign-in")
+    public ResponseEntity<AuthResponse> signIn(
+            @Valid @RequestBody AuthRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse
+    ) {
+        AuthResponse response = authService.signIn(request, httpRequest, httpResponse);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/sign-out")
+    public ResponseEntity<Void> signOut(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) {
+        authService.signOut(request, response);
+
+        return ResponseEntity
+                .noContent()
+                .build();
+    }
+
+
 }
